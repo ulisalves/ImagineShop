@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
+import { ObjectId } from "mongodb";
 
+import { authMiddleware } from "./middleware/authMiddleware.js";
 import { UserService } from "./services/user-services.js";
 
 const app = express();
@@ -12,7 +14,17 @@ app.get("/", async (req, res) => {
   res.send("Imagine Shop!");
 });
 
-app.post("/users", async (req, res) => {
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+  const userService = new UserService();
+  const userLogged = await userService.login(email, password);
+  if (userLogged) {
+    return res.status(200).json(userLogged);
+  }
+  return res.status(400).json({ message: "Email ou senha inválidos" });
+});
+
+app.post("/login", async (req, res) => {
   const { name, email, password } = req.body;
   const user = { name, email, password };
   const userService = new UserService();
@@ -27,8 +39,12 @@ app.get("/users", async (req, res) => {
   return res.status(200).json(user);
 });
 
-app.get("/users/:id", async (req, res) => {
-  const id = req.params;
+app.get("/users/:id", authMiddleware, async (req, res) => {
+  const id = req.params.id;
+  //const valueId = ObjectId(id);
+  //if (!valueId) {
+  //return res.status(401).json({ message: "Id Inválido" });
+  //}
   const userService = new UserService();
   const user = await userService.findByid(id);
   if (user) {
@@ -38,7 +54,7 @@ app.get("/users/:id", async (req, res) => {
 });
 
 app.delete("/users/:id", async (req, res) => {
-  const id = req.params;
+  const id = req.params.id;
   const userService = new UserService();
   const user = await userService.findByid(id);
   if (user) {
@@ -49,7 +65,7 @@ app.delete("/users/:id", async (req, res) => {
 });
 
 app.put("/users/:id", async (req, res) => {
-  const id = req.params;
+  const id = req.params.id;
   const { name, email, password } = req.body;
   const user = { name, email, password };
   const userService = new UserService();

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import express from "express";
-import { ObjectId } from "mongodb";
+import jwt from "jsonwebtoken";
 
 import { authMiddleware } from "./middleware/authMiddleware.js";
 import { UserService } from "./services/user-services.js";
@@ -19,17 +19,23 @@ app.post("/login", async (req, res) => {
   const userService = new UserService();
   const userLogged = await userService.login(email, password);
   if (userLogged) {
-    return res.status(200).json(userLogged);
+    const secretKey = process.env.SECRET_KEY;
+    const token = jwt.sign({ user: userLogged }, secretKey, {
+      expiresIn: "3600s",
+    });
+    return res.status(200).json({ token });
   }
   return res.status(400).json({ message: "Email ou senha inválidos" });
 });
 
-app.post("/login", async (req, res) => {
+app.use(authMiddleware);
+
+app.post("/users", async (req, res) => {
   const { name, email, password } = req.body;
   const user = { name, email, password };
   const userService = new UserService();
-  await userService.create(user);
 
+  await userService.create(user);
   return res.status(201).json(user);
 });
 
@@ -39,7 +45,7 @@ app.get("/users", async (req, res) => {
   return res.status(200).json(user);
 });
 
-app.get("/users/:id", authMiddleware, async (req, res) => {
+app.get("/users/:id", async (req, res) => {
   const id = req.params.id;
   //const valueId = ObjectId(id);
   //if (!valueId) {

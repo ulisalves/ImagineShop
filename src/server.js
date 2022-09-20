@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import jwt from "jsonwebtoken";
+import { ObjectId } from "mongodb";
+import mongoose from "mongoose";
 
 import { authMiddleware } from "./middleware/authMiddleware.js";
 import { UserService } from "./services/user-services.js";
@@ -28,7 +30,7 @@ app.post("/login", async (req, res) => {
   return res.status(400).json({ message: "Email ou senha inválidos" });
 });
 
-app.use(authMiddleware);
+//app.use(authMiddleware);
 
 app.post("/users", async (req, res) => {
   const { name, email, password } = req.body;
@@ -47,10 +49,11 @@ app.get("/users", async (req, res) => {
 
 app.get("/users/:id", async (req, res) => {
   const id = req.params.id;
-  //const valueId = ObjectId(id);
-  //if (!valueId) {
-  //return res.status(401).json({ message: "Id Inválido" });
-  //}
+  const valueId = mongoose.Types.ObjectId.isValid(id);
+  console.log(valueId);
+  if (!valueId) {
+    return res.status(401).json({ message: "Id Inválido" });
+  }
   const userService = new UserService();
   const user = await userService.findByid(id);
   if (user) {
